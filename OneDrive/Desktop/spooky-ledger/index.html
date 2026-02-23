@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spooky Spending Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --obsidian: #08080a;
+            --ember: #f97316;
+            --crimson: #991b1b;
+            --blood-glow: rgba(153, 27, 27, 0.15);
+            --ink: #121217;
+            --border-tint: rgba(249, 115, 22, 0.1);
+        }
+
+        body {
+            background-color: var(--obsidian);
+            color: #f4f4f5;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: -0.01em;
+            background-image: 
+                radial-gradient(circle at 10% 20%, var(--blood-glow) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(249, 115, 22, 0.05) 0%, transparent 40%);
+        }
+
+        h1, h2, h3 {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .glass-panel {
+            background: linear-gradient(145deg, #16161d 0%, #0d0d12 100%);
+            border: 1px solid var(--border-tint);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+        }
+
+        .input-field {
+            background: #000 !important;
+            border: 1px solid #2a2a35 !important;
+            color: #fff !important;
+            transition: all 0.2s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--ember) !important;
+            box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.1);
+            outline: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--ember) 0%, var(--crimson) 100%);
+            color: white;
+            font-weight: 700;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-size: 0.7rem;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.2);
+            box-shadow: 0 4px 15px rgba(153, 27, 27, 0.4);
+        }
+
+        .accent-border {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .accent-border::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: linear-gradient(to bottom, var(--ember), var(--crimson));
+        }
+
+        /* Ambient noise */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.03;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            z-index: 9999;
+        }
+
+        .stat-card {
+            border-left: 1px solid var(--border-tint);
+            padding-left: 1.5rem;
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--crimson); border-radius: 10px; }
+    </style>
+</head>
+<body class="p-6 md:p-12 min-h-screen">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Modern Header -->
+        <header class="flex flex-col md:flex-row justify-between items-baseline mb-16 border-b border-white/5 pb-12">
+            <div class="mb-6 md:mb-0">
+                <h1 class="text-5xl italic font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-700 mb-2">The Ledger</h1>
+                <p class="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold">IV. OJT Financial Tracking / Blood Moon Edition</p>
+            </div>
+            
+            <div class="stat-card">
+                <span class="text-[10px] uppercase tracking-widest text-zinc-500 block mb-1">Available Liquidity</span>
+                <h2 id="totalBalance" class="text-6xl font-light text-white tracking-tighter">₱0.00</h2>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            
+            <!-- Sidebar: Management -->
+            <div class="lg:col-span-4 space-y-12">
+                <!-- Add Funds -->
+                <section>
+                    <h3 class="text-xs uppercase tracking-widest text-orange-500/80 mb-6 font-bold flex items-center gap-3">
+                        <span class="w-2 h-2 rounded-full bg-red-800"></span> Recalibrate Balance
+                    </h3>
+                    <div class="glass-panel p-6 space-y-4">
+                        <input type="number" id="incomeAmount" placeholder="Allowance Input" class="input-field w-full px-4 py-4 rounded text-sm">
+                        <button onclick="addIncome()" class="btn-primary w-full py-4 rounded shadow-lg">Credit Vault</button>
+                    </div>
+                </section>
+
+                <!-- Analytics -->
+                <section>
+                    <h3 class="text-xs uppercase tracking-widest text-orange-500/80 mb-6 font-bold flex items-center gap-3">
+                        <span class="w-2 h-2 rounded-full bg-red-800"></span> Category Exposure
+                    </h3>
+                    <div id="categoryStats" class="space-y-6 glass-panel p-6">
+                        <p class="text-xs text-zinc-600 italic">Awaiting expenditure analysis...</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Main Workspace -->
+            <div class="lg:col-span-8 space-y-12">
+                <!-- Entry Form -->
+                <section class="glass-panel p-10 accent-border">
+                    <div class="flex items-center gap-4 mb-10">
+                        <h3 class="text-2xl text-white italic">Authorize New Transaction</h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div class="space-y-8">
+                            <div>
+                                <label class="text-[10px] uppercase tracking-widest text-zinc-400 mb-3 block font-bold">Asset Classification</label>
+                                <select id="expCategory" class="input-field w-full px-4 py-4 rounded text-sm appearance-none cursor-pointer">
+                                    <option value="Food">Provisioning (Food)</option>
+                                    <option value="Transport">Transit (Transportation)</option>
+                                    <option value="Load">Connectivity (Load)</option>
+                                    <option value="Subscription">Recurrent (Subscription)</option>
+                                    <option value="OJT">Operational (OJT)</option>
+                                    <option value="Other">Miscellaneous</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase tracking-widest text-zinc-400 mb-3 block font-bold">Value (PHP)</label>
+                                <input type="number" id="expAmount" placeholder="0.00" class="input-field w-full px-4 py-4 rounded text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] uppercase tracking-widest text-zinc-400 mb-3 block font-bold">Annotations</label>
+                            <textarea id="expNote" placeholder="Specifics of the transaction..." class="input-field w-full px-4 py-4 rounded text-sm h-[154px] resize-none"></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-10 pt-6 border-t border-white/5">
+                        <button onclick="addExpense()" class="btn-primary px-16 py-4 rounded-full shadow-2xl">Execute Expenditure</button>
+                    </div>
+                </section>
+
+                <!-- History -->
+                <section>
+                    <div class="flex justify-between items-end mb-8">
+                        <h3 class="text-xs uppercase tracking-widest text-orange-500/80 font-bold flex items-center gap-3">
+                            <span class="w-2 h-2 rounded-full bg-red-800"></span> Chronological Journal
+                        </h3>
+                        <button onclick="clearHistory()" class="text-[9px] text-zinc-600 hover:text-red-500 transition-colors uppercase tracking-[0.2em] font-bold">Purge Records</button>
+                    </div>
+                    
+                    <div class="glass-panel overflow-hidden">
+                        <div class="divide-y divide-white/[0.03]" id="historyList">
+                            <!-- Entries go here -->
+                        </div>
+                        <div id="emptyState" class="py-24 text-center">
+                            <p class="text-[10px] text-zinc-600 uppercase tracking-[0.3em]">The ledger holds no spectral traces.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-12 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] uppercase tracking-[0.2em] px-10 py-4 hidden z-50 font-black shadow-2xl rounded-full"></div>
+
+    <script>
+        let balance = 0;
+        let transactions = [];
+
+        window.onload = () => {
+            const saved = localStorage.getItem('modernSpookyLedger_v2');
+            if (saved) {
+                const data = JSON.parse(saved);
+                balance = data.balance || 0;
+                transactions = data.transactions || [];
+                updateUI();
+            }
+        };
+
+        function saveData() {
+            localStorage.setItem('modernSpookyLedger_v2', JSON.stringify({ balance, transactions }));
+        }
+
+        function updateUI() {
+            document.getElementById('totalBalance').innerText = `₱${balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            
+            const list = document.getElementById('historyList');
+            const emptyState = document.getElementById('emptyState');
+            const catStats = document.getElementById('categoryStats');
+            
+            list.innerHTML = '';
+            
+            if (transactions.length === 0) {
+                emptyState.classList.remove('hidden');
+                catStats.innerHTML = `<p class="text-xs text-zinc-600 italic">No exposure data available.</p>`;
+            } else {
+                emptyState.classList.add('hidden');
+                
+                transactions.slice().reverse().forEach(tx => {
+                    const isIncome = tx.type === 'income';
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center p-6 hover:bg-white/[0.02] transition-all";
+                    item.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-zinc-600 uppercase tracking-widest font-bold mb-1">${tx.date}</span>
+                            <span class="text-sm font-semibold text-zinc-100">${tx.category}</span>
+                            <span class="text-[11px] text-zinc-500 italic">${tx.note}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-base font-mono ${isIncome ? 'text-green-500/80' : 'text-red-600'}">
+                                ${isIncome ? '+' : '−'} ₱${tx.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                            </span>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+
+                const stats = {};
+                transactions.filter(t => t.type === 'expense').forEach(t => {
+                    stats[t.category] = (stats[t.category] || 0) + t.amount;
+                });
+
+                catStats.innerHTML = Object.entries(stats)
+                    .sort((a,b) => b[1] - a[1])
+                    .map(([cat, amt]) => `
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-end">
+                                <span class="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">${cat}</span>
+                                <span class="text-xs font-mono text-orange-500">₱${amt.toLocaleString()}</span>
+                            </div>
+                            <div class="w-full bg-zinc-900 h-[2px] rounded-full overflow-hidden">
+                                <div class="bg-gradient-to-r from-red-800 to-orange-600 h-full" style="width: ${Math.min((amt/balance)*100, 100)}%"></div>
+                            </div>
+                        </div>
+                    `).join('');
+            }
+        }
+
+        function addIncome() {
+            const input = document.getElementById('incomeAmount');
+            const amount = parseFloat(input.value);
+            if (!amount || amount <= 0) return notify("Null value detected.");
+
+            balance += amount;
+            transactions.push({
+                type: 'income',
+                category: 'Credit Allocation',
+                amount: amount,
+                note: 'Vault infusion',
+                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                id: Date.now()
+            });
+
+            input.value = '';
+            updateUI();
+            saveData();
+            notify("Liquidity recalibrated.");
+        }
+
+        function addExpense() {
+            const amtIn = document.getElementById('expAmount');
+            const catIn = document.getElementById('expCategory');
+            const noteIn = document.getElementById('expNote');
+            
+            const amount = parseFloat(amtIn.value);
+            if (!amount || amount <= 0) return notify("Auth denied: Invalid value.");
+            if (amount > balance) return notify("Auth denied: Insufficient souls.");
+
+            balance -= amount;
+            transactions.push({
+                type: 'expense',
+                category: catIn.options[catIn.selectedIndex].text,
+                amount: amount,
+                note: noteIn.value || 'Unspecified transaction',
+                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                id: Date.now()
+            });
+
+            amtIn.value = '';
+            noteIn.value = '';
+            updateUI();
+            saveData();
+            notify("Expenditure authorized.");
+        }
+
+        function clearHistory() {
+            if(confirm("Purge all journal entries from this realm?")) {
+                balance = 0;
+                transactions = [];
+                updateUI();
+                saveData();
+                notify("Ledger purged.");
+            }
+        }
+
+        function notify(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2500);
+        }
+    </script>
+</body>
+</html>
