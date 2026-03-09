@@ -3,12 +3,19 @@ import { Link } from 'react-router-dom';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useOrderStore } from '../store/useOrderStore';
 import { useAuth } from '../context/AuthContext';
+import { formatCurrency } from '../utils/helpers';
+import { supabase } from '../supabaseClient'; // Make sure this is imported
+import LoadingSpinner from '../components/common/loadingSpinner';
+import { UserCircleIcon } from '@heroicons/react/24/outline'; // Add this to your icon list
 import {
   CubeIcon,
   ExclamationTriangleIcon,
   CurrencyDollarIcon,
   ShoppingCartIcon,
   ArrowPathIcon,
+  UsersIcon,
+  ChartBarIcon,
+  
 } from '@heroicons/react/24/outline';
 import {
   Chart as ChartJS,
@@ -21,8 +28,6 @@ import {
   ArcElement,
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
-import { formatCurrency } from '../utils/helpers';
-import LoadingSpinner from '../components/common/loadingSpinner';
 
 ChartJS.register(
   CategoryScale,
@@ -35,10 +40,14 @@ ChartJS.register(
 );
 
 const DashboardPage = () => {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { products, fetchProducts, getInventoryStats } = useInventoryStore();
   const { orders, fetchAllOrders, getOrderStats } = useOrderStore();
+  
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState(null); 
+
+  // --- ADD THESE TWO BLOCKS BACK ---
   const [stats, setStats] = useState({
     totalItems: 0,
     totalValue: 0,
@@ -46,34 +55,71 @@ const DashboardPage = () => {
     outOfStockItems: 0,
     totalProducts: 0,
   });
+
   const [orderStats, setOrderStats] = useState({
     total: 0,
     pending: 0,
     approved: 0,
     totalValue: 0,
   });
+  // ---------------------------------
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const fetchUserProfile = async () => {
+    // ... your fetch logic ...
+    try {
+      // Safety check: ensure user exists before fetching
+      if (!user?.id) return; 
 
-  const loadData = async () => {
-    setLoading(true);
-    await Promise.all([fetchProducts(), fetchAllOrders()]);
-    setStats(getInventoryStats());
-    setOrderStats(getOrderStats());
-    setLoading(false);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      if (data) setUserProfile(data);
+    } catch (err) {
+      console.error("Error fetching profile for dashboard:", err);
+    }
   };
 
-  // Chart data
+  // 2. Create ONE unified data loader with error handling
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch Profile and Store data at the same time
+      await Promise.all([
+        fetchProducts(), 
+        fetchAllOrders(),
+        fetchUserProfile() 
+      ]);
+      
+      setStats(getInventoryStats());
+      setOrderStats(getOrderStats());
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+    } finally {
+      // FINALLY block ensures the spinner ALWAYS stops, even if an error occurs
+      setLoading(false);
+    }
+  };
+
+  // 3. Run it when the page loads
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---> PASTE THESE CHART VARIABLES RIGHT HERE <---
   const categoryData = {
     labels: ['Solar Panels', 'Inverters', 'Batteries', 'Mounting', 'Cables', 'Others'],
     datasets: [
       {
         label: 'Quantity in Stock',
         data: [150, 45, 8, 25, 2, 0],
-        backgroundColor: 'rgba(14, 165, 233, 0.5)',
-        borderColor: 'rgb(14, 165, 233)',
+        backgroundColor: 'rgba(249, 115, 22, 0.5)', // Adjusted to your orange theme!
+        borderColor: 'rgb(249, 115, 22)',
         borderWidth: 1,
       },
     ],
@@ -110,6 +156,7 @@ const DashboardPage = () => {
   };
 
   if (loading) {
+// ... rest of your code stays the same ...
     return (
       <div className="flex justify-center items-center h-64">
         <LoadingSpinner size="large" />
@@ -119,14 +166,36 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+      {/* --- NEW WELCOME SECTION --- */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="h-16 w-16 flex-shrink-0">
+            {userProfile?.avatar_url ? (
+              <img 
+                src={userProfile.avatar_url} 
+                alt="Profile" 
+                className="h-16 w-16 rounded-full object-cover border-2 border-orange-500"
+              />
+            ) : (
+              <UserCircleIcon className="h-16 w-16 text-gray-400" />
+            )}
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Welcome back, {userProfile?.username || user?.email?.split('@')[0]}!
+            </h1>
+            <p className="text-sm text-gray-500">
+              Here's what's happening with the solar inventory today.
+            </p>
+          </div>
+        </div>
+        
         <button
-          onClick={loadData}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          onClick={loadData} // your existing refresh function
+          className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
         >
           <ArrowPathIcon className="h-4 w-4 mr-2" />
-          Refresh
+          Refresh Data
         </button>
       </div>
 
@@ -277,42 +346,34 @@ const DashboardPage = () => {
           </Link>
         </div>
       </div>
+      
 
-      {/* Quick Actions */}
-      {isAdmin() && (
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link
-              to="/inventory/add"
-              className="text-center p-4 border border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
-            >
-              <CubeIcon className="h-8 w-8 mx-auto text-primary-600 mb-2" />
-              <span className="text-sm font-medium text-gray-700">Add Product</span>
-            </Link>
-            <Link
-              to="/users/add"
-              className="text-center p-4 border border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
-            >
-              <UsersIcon className="h-8 w-8 mx-auto text-primary-600 mb-2" />
-              <span className="text-sm font-medium text-gray-700">Add User</span>
-            </Link>
-            <Link
-              to="/reports"
-              className="text-center p-4 border border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
-            >
-              <ChartBarIcon className="h-8 w-8 mx-auto text-primary-600 mb-2" />
-              <span className="text-sm font-medium text-gray-700">Generate Report</span>
-            </Link>
-            <Link
-              to="/inventory/low-stock"
-              className="text-center p-4 border border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
-            >
-              <ExclamationTriangleIcon className="h-8 w-8 mx-auto text-primary-600 mb-2" />
-              <span className="text-sm font-medium text-gray-700">Low Stock</span>
-            </Link>
-          </div>
-        </div>
+     {/* Quick Actions */}
+{isAdmin() && (
+  <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+    <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      
+      {/* ADD THIS: Link to the main Users Management page */}
+      <Link
+        to="/users"
+        className="text-center p-4 border border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
+      >
+        <UsersIcon className="h-8 w-8 mx-auto text-primary-600 mb-2" />
+        <span className="text-sm font-medium text-gray-700">Manage Users</span>
+      </Link>
+
+      <Link
+        to="/inventory/add"
+        className="text-center p-4 border border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
+      >
+        <CubeIcon className="h-8 w-8 mx-auto text-primary-600 mb-2" />
+        <span className="text-sm font-medium text-gray-700">Add Product</span>
+      </Link>
+
+      {/* Rest of your links... */}
+    </div>
+  </div>
       )}
     </div>
   );
