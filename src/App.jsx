@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import './App.css';
 import { Toaster } from 'react-hot-toast';
 import Header from './components/common/header';
 import Sidebar from './components/common/sidebar';
 import { useAuth } from './context/AuthContext';
 import { createClient } from '@supabase/supabase-js'
+
 
 // Ensure both use 'import.meta.env' and match the .env file exactly
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
