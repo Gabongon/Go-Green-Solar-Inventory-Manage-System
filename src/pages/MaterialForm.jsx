@@ -4,27 +4,28 @@ import { supabase } from '../App';
 
 const MaterialForm = () => {
   const navigate = useNavigate();
-  const { id } = useParams(); // If there's an ID in the URL, we are editing
+  const { id } = useParams();
   const isEditing = Boolean(id);
 
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   
+  // Set everything to blank by default so it's not confusing
   const [formData, setFormData] = useState({
     material_name: '',
-    classification: 'solar panel', // default dropdown value
+    classification: '', 
     specs: '',
-    unit_of_measure: '',
+    unit_of_measure: '', 
     description: '',
-    category: 'consumables', // default dropdown value
+    category: '', 
     image_url: ''
   });
 
-  // Dropdown options
+  // Your requested dropdown options
   const classifications = ['solar panel', 'inverter', 'battery', 'cables/wires', 'raceway materials', 'mounting kits', 'breakers', 'protective'];
   const categories = ['consumables', 'outdoor', 'indoor', 'protectives'];
+  const units = ['pieces', 'meters', 'sets', 'roll', 'packs'];
 
-  // Fetch material if editing
   useEffect(() => {
     if (isEditing) {
       const fetchMaterial = async () => {
@@ -34,11 +35,8 @@ const MaterialForm = () => {
           .eq('id', id)
           .single();
 
-        if (error) {
-          console.error('Error fetching material:', error);
-        } else if (data) {
-          setFormData(data);
-        }
+        if (error) console.error('Error fetching material:', error);
+        else if (data) setFormData(data);
       };
       fetchMaterial();
     }
@@ -55,23 +53,18 @@ const MaterialForm = () => {
   };
 
   const uploadImage = async () => {
-    if (!imageFile) return formData.image_url; // Keep existing if no new file
+    if (!imageFile) return formData.image_url;
 
     const fileExt = imageFile.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `materials/${fileName}`;
 
-    // Upload to 'material-images' bucket
     const { error: uploadError } = await supabase.storage
       .from('material-images')
       .upload(filePath, imageFile);
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      throw uploadError;
-    }
+    if (uploadError) throw uploadError;
 
-    // Get public URL
     const { data } = supabase.storage
       .from('material-images')
       .getPublicUrl(filePath);
@@ -84,7 +77,6 @@ const MaterialForm = () => {
     setLoading(true);
 
     try {
-      // 1. Upload image if one was selected
       let uploadedImageUrl = formData.image_url;
       if (imageFile) {
         uploadedImageUrl = await uploadImage();
@@ -92,26 +84,20 @@ const MaterialForm = () => {
 
       const payload = { ...formData, image_url: uploadedImageUrl };
 
-      // 2. Insert or Update database
       if (isEditing) {
-        const { error } = await supabase
-          .from('materials')
-          .update(payload)
-          .eq('id', id);
+        const { error } = await supabase.from('materials').update(payload).eq('id', id);
         if (error) throw error;
         alert('Material updated successfully!');
       } else {
-        const { error } = await supabase
-          .from('materials')
-          .insert([payload]);
+        const { error } = await supabase.from('materials').insert([payload]);
         if (error) throw error;
         alert('Material added successfully!');
       }
 
-      navigate('/inventory'); // Go back to inventory list
+      navigate('/inventory');
     } catch (error) {
-      console.error('Error saving material:', error.message);
-      alert('Failed to save material.');
+      console.error('Full Error Details:', error);
+      alert(`Failed to save: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -124,29 +110,27 @@ const MaterialForm = () => {
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Material Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Material Name</label>
           <input type="text" name="material_name" value={formData.material_name} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
 
-        {/* Classification Dropdown */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Classification</label>
-          <select name="classification" value={formData.classification} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
+          <select name="classification" value={formData.classification} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md p-2">
+            <option value="" disabled>Select a classification...</option>
             {classifications.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
-        {/* Category Dropdown */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Category</label>
-          <select name="category" value={formData.category} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
+          <select name="category" value={formData.category} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md p-2">
+            <option value="" disabled>Select a category...</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
-        {/* Specs & Unit */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Specs</label>
@@ -154,17 +138,18 @@ const MaterialForm = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Unit of Measure</label>
-            <input type="text" name="unit_of_measure" value={formData.unit_of_measure} onChange={handleChange} placeholder="e.g., pcs, meters" className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+            <select name="unit_of_measure" value={formData.unit_of_measure} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md p-2">
+              <option value="" disabled>Select unit...</option>
+              {units.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
           </div>
         </div>
 
-        {/* Description */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Description</label>
           <textarea name="description" value={formData.description} onChange={handleChange} rows="3" className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
 
-        {/* Image Upload */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Image Upload</label>
           <input type="file" accept="image/*" onChange={handleImageChange} className="mt-1 block w-full" />
@@ -173,7 +158,6 @@ const MaterialForm = () => {
           )}
         </div>
 
-        {/* Buttons */}
         <div className="flex justify-end gap-3 pt-4">
           <button type="button" onClick={() => navigate('/inventory')} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
             Cancel

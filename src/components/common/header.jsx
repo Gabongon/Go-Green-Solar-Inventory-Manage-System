@@ -1,6 +1,7 @@
-import React, { useState, Fragment } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../supabaseClient'; // Make sure this path is correct for your project!
 import { Menu, Transition } from '@headlessui/react';
 import { 
   Bars3Icon, 
@@ -13,11 +14,35 @@ import {
 const Header = ({ sidebarOpen, setSidebarOpen }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [profile, setProfile] = useState(null);
+
+  // FETCH PROFILE DATA FROM SUPABASE
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('username, avatar_url')
+          .eq('id', user.id)
+          .single();
+        
+        if (data) setProfile(data);
+      } catch (error) {
+        console.error('Error fetching profile for header:', error);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
+
+  // Create a display name for the header and fallback avatar
+  const displayName = profile?.username || user?.email?.split('@')[0] || 'User';
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -41,12 +66,27 @@ const Header = ({ sidebarOpen, setSidebarOpen }) => {
             {/* User menu */}
             <Menu as="div" className="relative">
               <Menu.Button className="flex items-center gap-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-full">
-                <img
-                  src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=0ea5e9&color=fff`}
-                  alt={user?.name}
-                  className="h-8 w-8 rounded-full"
-                />
-                <span className="hidden md:block text-gray-700">{user?.name}</span>
+                
+                {/* DYNAMIC PROFILE PICTURE */}
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt="Profile"
+                    className="h-8 w-8 rounded-full object-cover border border-gray-200"
+                  />
+                ) : (
+                  <img
+                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=f97316&color=fff`}
+                    alt="Default Avatar"
+                    className="h-8 w-8 rounded-full"
+                  />
+                )}
+                
+                {/* DYNAMIC USERNAME */}
+                <span className="hidden md:block text-gray-700 font-medium">
+                  {displayName}
+                </span>
+
               </Menu.Button>
 
               <Transition
