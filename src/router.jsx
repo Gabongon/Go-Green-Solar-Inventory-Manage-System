@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import App from './App';
 import PrivateRoute from "./components/auth/privateRoute";
 import LoadingSpinner from './components/common/loadingSpinner';
+import MaterialForm from "./pages/MaterialForm";
 
 // --- Lazy load ALL pages here ---
 const LoginPage = lazy(() => import('./pages/loginPage'));
@@ -44,14 +45,15 @@ export const router = createBrowserRouter([
         path: 'inventory',
         element: <PrivateRoute>{withSuspense(InventoryPage)}</PrivateRoute>,
       },
-      {
-        path: 'inventory/add',
-        element: <PrivateRoute requireAdmin>{withSuspense(InventoryPage)}</PrivateRoute>,
-      },
-      {
-        path: 'inventory/:id',
-        element: <PrivateRoute>{withSuspense(InventoryPage)}</PrivateRoute>,
-      },
+    // ADD YOUR NEW ROUTES RIGHT BELOW IT:
+{
+  path: "/inventory/add",
+  element: <MaterialForm />,
+},
+{
+  path: "/inventory/edit/:id",
+  element: <MaterialForm />,
+},
       {
         path: 'orders',
         element: <PrivateRoute>{withSuspense(OrdersPage)}</PrivateRoute>,

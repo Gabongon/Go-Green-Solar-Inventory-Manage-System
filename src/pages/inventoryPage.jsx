@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../App'; // Ensure this points to where you exported supabase
+import { supabase } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { 
   MagnifyingGlassIcon, 
   PlusIcon, 
   TrashIcon, 
-  InformationCircleIcon 
+  InformationCircleIcon,
+  PencilIcon // <-- Added this icon
 } from '@heroicons/react/24/outline';
 
 const InventoryPage = () => {
@@ -15,14 +16,13 @@ const InventoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 1. DIRECT FETCH FROM SUPABASE
   const fetchMaterials = async () => {
     try {
       setLoading(true);
-      // We specifically call the 'materials' table from your screenshot
       const { data, error } = await supabase
         .from('materials') 
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false }); // Optional: latest first
 
       if (error) throw error;
       setMaterials(data || []);
@@ -37,7 +37,21 @@ const InventoryPage = () => {
     fetchMaterials();
   }, []);
 
-  // 2. SEARCH LOGIC
+  // --- ADDED DELETE FUNCTIONALITY ---
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this material?')) {
+      try {
+        const { error } = await supabase.from('materials').delete().eq('id', id);
+        if (error) throw error;
+        // Update local state to remove the item without refreshing
+        setMaterials(materials.filter(item => item.id !== id));
+      } catch (error) {
+        console.error('Error deleting material:', error.message);
+        alert('Failed to delete material.');
+      }
+    }
+  };
+
   const filteredMaterials = materials.filter((item) =>
     item.material_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.category?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -48,25 +62,23 @@ const InventoryPage = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">Materials Inventory</h1>
         {isAdmin() && (
-          <Link to="/inventory/add" className="btn-primary flex items-center gap-2">
+          <Link to="/inventory/add" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2">
             <PlusIcon className="h-5 w-5" /> Add Material
           </Link>
         )}
       </div>
 
-      {/* Search Bar */}
       <div className="relative">
         <MagnifyingGlassIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
         <input
           type="text"
           placeholder="Search materials..."
-          className="input-field pl-10 w-full"
+          className="border border-gray-300 rounded-md py-2 pl-10 pr-4 w-full"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
-      {/* Materials Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -86,7 +98,6 @@ const InventoryPage = () => {
             ) : (
               filteredMaterials.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                  {/* Name & Image */}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img 
@@ -101,7 +112,6 @@ const InventoryPage = () => {
                     </div>
                   </td>
 
-                  {/* MERGED: Category & Specs */}
                   <td className="px-6 py-4">
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 uppercase">
                       {item.category || 'General'}
@@ -120,11 +130,20 @@ const InventoryPage = () => {
                   </td>
 
                   <td className="px-6 py-4 text-right space-x-2">
-                    <Link to={`/inventory/${item.id}`} className="inline-block p-1.5 text-gray-400 hover:text-primary-600">
+                    <Link to={`/inventory/${item.id}`} className="inline-block p-1.5 text-gray-400 hover:text-blue-600">
                       <InformationCircleIcon className="h-5 w-5" />
                     </Link>
+                    
+                    {/* --- ADDED EDIT BUTTON --- */}
                     {isAdmin() && (
-                      <button className="p-1.5 text-gray-400 hover:text-red-600">
+                      <Link to={`/inventory/edit/${item.id}`} className="inline-block p-1.5 text-gray-400 hover:text-green-600">
+                        <PencilIcon className="h-5 w-5" />
+                      </Link>
+                    )}
+
+                    {/* --- WIRED UP DELETE BUTTON --- */}
+                    {isAdmin() && (
+                      <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-600">
                         <TrashIcon className="h-5 w-5" />
                       </button>
                     )}

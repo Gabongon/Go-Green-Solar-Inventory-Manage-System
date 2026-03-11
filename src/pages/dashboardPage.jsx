@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+
 import { Link } from 'react-router-dom';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useOrderStore } from '../store/useOrderStore';
@@ -6,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../utils/helpers';
 import { supabase } from '../supabaseClient'; // Make sure this is imported
 import LoadingSpinner from '../components/common/loadingSpinner';
+
 import { UserCircleIcon } from '@heroicons/react/24/outline'; // Add this to your icon list
 import {
   CubeIcon,

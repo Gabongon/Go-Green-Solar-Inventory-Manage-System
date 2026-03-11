@@ -33,9 +33,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Removed lg:static and lg:h-screen entirely */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
