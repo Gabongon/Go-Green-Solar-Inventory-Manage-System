@@ -36,17 +36,18 @@ const ProfilesPage = () => { // Changed component name
     fetchProfiles();
   }, []);
 
-  const updateRole = async (profileId, newRole) => { // Changed parameter name
+  const updateRole = async (profileId, newRole) => {
     const { error } = await supabase
       .from('profiles')
       .update({ role: newRole })
       .eq('id', profileId);
 
     if (error) {
-      toast.error('Failed to update role');
+      console.error("Database error:", error);
+      // This will now show the exact error message on your screen!
+      toast.error(`Failed to save: ${error.message}`); 
     } else {
       toast.success(`Profile is now ${newRole}`);
-      // Updated state mapper
       setProfiles(profiles.map(p => p.id === profileId ? { ...p, role: newRole } : p));
     }
   };

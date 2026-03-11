@@ -4,14 +4,14 @@ import App from './App';
 import PrivateRoute from "./components/auth/privateRoute";
 import LoadingSpinner from './components/common/loadingSpinner';
 import MaterialForm from "./pages/MaterialForm";
+import InboundPage from './pages/InboundPage'; // <-- Your new import
 
 // --- Lazy load ALL pages here ---
 const LoginPage = lazy(() => import('./pages/loginPage'));
-const SignupPage = lazy(() => import('./pages/signupPage')); // Fixed casing to match others
+const SignupPage = lazy(() => import('./pages/signupPage')); 
 const DashboardPage = lazy(() => import('./pages/dashboardPage'));
 const InventoryPage = lazy(() => import('./pages/inventoryPage'));
 
-// Added the missing definitions
 const OrdersPage = lazy(() => import('./pages/ordersPage'));
 const UsersPage = lazy(() => import('./pages/usersPage'));
 const ProfilePage = lazy(() => import('./pages/profilePage'));
@@ -45,15 +45,14 @@ export const router = createBrowserRouter([
         path: 'inventory',
         element: <PrivateRoute>{withSuspense(InventoryPage)}</PrivateRoute>,
       },
-    // ADD YOUR NEW ROUTES RIGHT BELOW IT:
-{
-  path: "/inventory/add",
-  element: <MaterialForm />,
-},
-{
-  path: "/inventory/edit/:id",
-  element: <MaterialForm />,
-},
+      {
+        path: "inventory/add",
+        element: <PrivateRoute><MaterialForm /></PrivateRoute>, // Added PrivateRoute here for security!
+      },
+      {
+        path: "inventory/edit/:id",
+        element: <PrivateRoute><MaterialForm /></PrivateRoute>, // Added PrivateRoute here for security!
+      },
       {
         path: 'orders',
         element: <PrivateRoute>{withSuspense(OrdersPage)}</PrivateRoute>,
@@ -62,6 +61,14 @@ export const router = createBrowserRouter([
         path: 'orders/:id',
         element: <PrivateRoute>{withSuspense(OrdersPage)}</PrivateRoute>,
       },
+      
+      // --- ADDED INBOUND ROUTE HERE ---
+      {
+        path: 'inbound',
+        element: <PrivateRoute><InboundPage /></PrivateRoute>,
+      },
+      // --------------------------------
+
       {
         path: 'users',
         element: <PrivateRoute requireAdmin>{withSuspense(UsersPage)}</PrivateRoute>,

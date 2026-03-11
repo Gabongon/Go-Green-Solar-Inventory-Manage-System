@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { InboxArrowDownIcon } from '@heroicons/react/24/outline';
 import {
   HomeIcon,
   CubeIcon,
@@ -18,6 +19,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Inventory', href: '/inventory', icon: CubeIcon },
     { name: 'Orders', href: '/orders', icon: ShoppingCartIcon },
+    { name: 'Inbound Receiving', href: '/inbound', icon: InboxArrowDownIcon },
     ...(isAdmin() ? [{ name: 'Users', href: '/users', icon: UsersIcon }] : []),
     { name: 'Reports', href: '/reports', icon: ChartBarIcon },
     { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
